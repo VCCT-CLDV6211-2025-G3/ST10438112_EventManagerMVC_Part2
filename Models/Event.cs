@@ -1,7 +1,7 @@
 ﻿/*
  *@Author:     Kylan Frittelli (ST10438112)                  
  *@File:       Event.cs                                      
- *@Updated:    22/03/2025                                    
+ *@Updated:    03/04/2025                                    
  *@Purpose:    Represents an Event linked to a Venue         
  *              (CLDV6211 POE – Part 1)                        
  */
@@ -24,31 +24,31 @@ namespace EventManagerMVC.Models
 
         [Required]
         public DateTime EventDate { get; set; }
+        
+        [Required]
+        [DataType(DataType.Time)]
+        public TimeSpan EventTime { get; set; } //added an additional time property to show the time of the event (recomended from ChatGPT)
 
         [StringLength(1000)]
         public string? Description { get; set; }
 
-        //<removed> VenueID property to link to the Venue table
+        public string? ImageURL { get; set; }
 
+        public int VenueID { get; set; }
+        
         // Navigation property back to the venue
         public Venue? Venue { get; set; }
-
-        // Navigation: A single event can have many bookings
-        public ICollection<Booking> EventBookings { get; set; } = new List<Booking>();
+        public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
     //--------------------------------//
 }
 //END OF FILE>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 /* Refrences:
- * Huawei Technologies, 2023. Cloud Computing Technologies, Hangzshou: Posts & Telecom Press.
- * OpenAI, 2025. chatgpt.com. [Online] 
-   Available at: https://openai.com/chatgpt/
-   [Accessed 20 March 2025].
+ * Huawei Technologies, 2023. Cloud Computing Technologies. Hangzhou: Posts & Telecom Press.
  * Mrzyglód, K., 2022. Azure for Developers. 2nd ed. Birmingham: Packt Publishing.
- * Microsoft Corporation, 2022. The Developer's Guide to Azure, Redmond: Microsoft Press
- * Github Inc, 2025. Github Copilot. [Online] 
-   Available at: https://github.com
-   [Accessed 14 March 2025].
- * Varsity Collage, 2025. INSY6112 Module Manual, Cape Town: Independent Institute of Education.
+ * Microsoft Corporation, 2022. The Developer’s Guide to Azure. Redmond: Microsoft Press.
+ * OpenAI, 2025. ChatGPT. [online] Available at: https://openai.com/chatgpt/ [Accessed 20 March 2025].
+ * Github Inc., 2025. GitHub Copilot. [online] Available at: https://github.com [Accessed 14 March 2025].
+ * Varsity College, 2025. INSY6112 Module Manual. Cape Town: The Independent Institute of Education.
  */

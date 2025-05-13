@@ -60,14 +60,10 @@ namespace EventManagerMVC.Data //uses the Data folder
 //END OF FILE>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 /* Refrences:
- * Huawei Technologies, 2023. Cloud Computing Technologies, Hangzshou: Posts & Telecom Press.
- * OpenAI, 2025. chatgpt.com. [Online] 
-   Available at: https://openai.com/chatgpt/
-   [Accessed 20 March 2025].
+ * Huawei Technologies, 2023. Cloud Computing Technologies. Hangzhou: Posts & Telecom Press.
  * Mrzyglód, K., 2022. Azure for Developers. 2nd ed. Birmingham: Packt Publishing.
- * Microsoft Corporation, 2022. The Developer's Guide to Azure, Redmond: Microsoft Press
- * Github Inc, 2025. Github Copilot. [Online] 
-   Available at: https://github.com
-   [Accessed 14 March 2025].
- * Varsity Collage, 2025. INSY6112 Module Manual, Cape Town: Independent Institute of Education.
+ * Microsoft Corporation, 2022. The Developer’s Guide to Azure. Redmond: Microsoft Press.
+ * OpenAI, 2025. ChatGPT. [online] Available at: https://openai.com/chatgpt/ [Accessed 20 March 2025].
+ * Github Inc., 2025. GitHub Copilot. [online] Available at: https://github.com [Accessed 14 March 2025].
+ * Varsity College, 2025. INSY6112 Module Manual. Cape Town: The Independent Institute of Education.
  */
