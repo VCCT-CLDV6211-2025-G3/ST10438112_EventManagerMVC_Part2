@@ -1,8 +1,11 @@
 ﻿/*
- *   Author:     Kylan Frittelli (ST10438112)                  
- *   File:       BookingsController.cs                         
- *   Created:    22/03/2025                                    
- *   Purpose:    Manages bookings related to events.          
+ *   @Author:     Kylan Frittelli (ST10438112)                  
+ *   @File:       BookingsController.cs                         
+ *   @Created:    22/03/2025
+ *   @Updated:    04/05/2025
+ *    - Added consolidated view for bookings
+ *    
+ *   @Purpose:    Manages bookings related to events.          
  *               Auto-generated through scaffolding.
  *               Views were also scaffolded using Visual Studio.
  */
@@ -16,6 +19,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using EventManagerMVC.Data;
 using EventManagerMVC.Models;
+using EventManagerMVC.ViewModels;
 
 //----------------------------namespace-----------------//
 namespace EventManagerMVC.Controllers
@@ -81,10 +85,32 @@ namespace EventManagerMVC.Controllers
         {
             if (ModelState.IsValid)
             {
+                var selectedEvent = await _context.Events
+                    .Include(e => e.Venue)
+                    .FirstOrDefaultAsync(e => e.EventID == booking.EventID);
+
+                if (selectedEvent != null)
+                {
+                    var venueId = selectedEvent.VenueID;
+
+                    var isDoubleBooked = await _context.Bookings
+                        .Include(b => b.Event)
+                        .AnyAsync(b => b.Event.VenueID == venueId &&
+                                       b.BookingDate == booking.BookingDate &&
+                                       b.EventID != booking.EventID); // different event
+
+                    if (isDoubleBooked)
+                    {
+                        TempData["ErrorMessage"] = "This venue is already booked for another event at the selected time.";
+                        return RedirectToAction(nameof(Create));
+                    }
+                }
+
                 _context.Add(booking);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
             ViewData["EventID"] = new SelectList(_context.Events, "EventID", "EventName", booking.EventID);
             return View(booking);
         }
@@ -134,7 +160,7 @@ namespace EventManagerMVC.Controllers
                     if (!BookingExists(booking.BookingID))
                     {
                         return NotFound();
-                    }
+}
                     else
                     {
                         throw;
@@ -191,20 +217,43 @@ namespace EventManagerMVC.Controllers
             return _context.Bookings.Any(e => e.BookingID == id);
         }
         //--------------------------------//
+
+        //--------ConsolidatedView method-----------------//
+        //this method retrieves all bookings and allows for searching by BookingID or EventName
+        public async Task<IActionResult> ConsolidatedView(string searchTerm)
+        {
+            var bookingsQuery = _context.Bookings
+                .Include(b => b.Event) // includes the related Event entity
+                .Select(b => new BookingViewModel
+                {
+                    BookingID = b.BookingID,
+                    EventName = b.Event.EventName,
+                    BookingDate = b.BookingDate 
+                }); 
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {//this filters the bookings based on the search term
+                bookingsQuery = bookingsQuery.Where(b =>
+                    b.BookingID.ToString().Contains(searchTerm) ||
+                    b.EventName.Contains(searchTerm));
+            }
+
+            var filteredBookings = await bookingsQuery.ToListAsync(); //then it converts the query to a list
+
+            return View(filteredBookings); //thus returns the filtered bookings to the view
+        }
+    }
+        //--------------------------------//
     }
     //--------------------------------//
-}
+
 //END OF FILE>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 /* Refrences:
- * Huawei Technologies, 2023. Cloud Computing Technologies, Hangzshou: Posts & Telecom Press.
- * OpenAI, 2025. chatgpt.com. [Online] 
-   Available at: https://openai.com/chatgpt/
-   [Accessed 20 March 2025].
+ * Huawei Technologies, 2023. Cloud Computing Technologies. Hangzhou: Posts & Telecom Press.
  * Mrzyglód, K., 2022. Azure for Developers. 2nd ed. Birmingham: Packt Publishing.
- * Microsoft Corporation, 2022. The Developer's Guide to Azure, Redmond: Microsoft Press
- * Github Inc, 2025. Github Copilot. [Online] 
-   Available at: https://github.com
-   [Accessed 14 March 2025].
- * Varsity Collage, 2025. INSY6112 Module Manual, Cape Town: Independent Institute of Education.
+ * Microsoft Corporation, 2022. The Developer’s Guide to Azure. Redmond: Microsoft Press.
+ * OpenAI, 2025. ChatGPT. [online] Available at: https://openai.com/chatgpt/ [Accessed 04 May 2025].
+ * Github Inc., 2025. GitHub Copilot. [online] Available at: https://github.com [Accessed 04 May 2025].
+ * Varsity College, 2025. INSY6112 Module Manual. Cape Town: The Independent Institute of Education.
  */

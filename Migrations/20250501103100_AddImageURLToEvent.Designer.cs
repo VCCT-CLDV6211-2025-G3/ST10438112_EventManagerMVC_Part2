@@ -4,6 +4,7 @@ using EventManagerMVC.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EventManagerMVC.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250501103100_AddImageURLToEvent")]
+    partial class AddImageURLToEvent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,13 +108,10 @@ namespace EventManagerMVC.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<TimeSpan>("EventTime")
-                        .HasColumnType("time");
-
                     b.Property<string>("ImageURL")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("VenueID")
+                    b.Property<int?>("VenueID")
                         .HasColumnType("int");
 
                     b.HasKey("EventID");
@@ -126,45 +126,35 @@ namespace EventManagerMVC.Migrations
                             EventID = 4,
                             Description = "A fun activity for hotel guests",
                             EventDate = new DateTime(2026, 7, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EventName = "Snow Skiing Competition",
-                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
-                            VenueID = 0
+                            EventName = "Snow Skiing Competition"
                         },
                         new
                         {
                             EventID = 5,
                             Description = "An annual speech to commemorate the birth of Christ",
                             EventDate = new DateTime(2026, 12, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EventName = "Pope's Christmas Address",
-                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
-                            VenueID = 0
+                            EventName = "Pope's Christmas Address"
                         },
                         new
                         {
                             EventID = 6,
                             Description = "An exciting afternoon experience for booked customers",
                             EventDate = new DateTime(2026, 1, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EventName = "Sunday Paragliding",
-                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
-                            VenueID = 0
+                            EventName = "Sunday Paragliding"
                         },
                         new
                         {
                             EventID = 7,
                             Description = "A public event where the King meets the public around the Palace",
                             EventDate = new DateTime(2025, 6, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EventName = "His Majesty's Cancer Fundraiser",
-                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
-                            VenueID = 0
+                            EventName = "His Majesty's Cancer Fundraiser"
                         },
                         new
                         {
                             EventID = 8,
                             Description = "High stakes competition where groups of students compete to deploy an SaaS infrastructure under 60 minutes",
                             EventDate = new DateTime(2027, 6, 17, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EventName = "Cloud Development Team Death Match 2027",
-                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
-                            VenueID = 0
+                            EventName = "Cloud Development Team Death Match 2027"
                         });
                 });
 
@@ -250,7 +240,7 @@ namespace EventManagerMVC.Migrations
             modelBuilder.Entity("EventManagerMVC.Models.Booking", b =>
                 {
                     b.HasOne("EventManagerMVC.Models.Event", "Event")
-                        .WithMany("Bookings")
+                        .WithMany("EventBookings")
                         .HasForeignKey("EventID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -261,22 +251,20 @@ namespace EventManagerMVC.Migrations
             modelBuilder.Entity("EventManagerMVC.Models.Event", b =>
                 {
                     b.HasOne("EventManagerMVC.Models.Venue", "Venue")
-                        .WithMany("Events")
-                        .HasForeignKey("VenueID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .WithMany("HostedEvents")
+                        .HasForeignKey("VenueID");
 
                     b.Navigation("Venue");
                 });
 
             modelBuilder.Entity("EventManagerMVC.Models.Event", b =>
                 {
-                    b.Navigation("Bookings");
+                    b.Navigation("EventBookings");
                 });
 
             modelBuilder.Entity("EventManagerMVC.Models.Venue", b =>
                 {
-                    b.Navigation("Events");
+                    b.Navigation("HostedEvents");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,11 +1,12 @@
 /*
  * @Author: Kylan Frittelli ST10438112
- * @Since[Updated]: 22/03/25
+ * @Since[Updated]: 04/05/25
  * @Function: Program.cs for CLDV6211 POE Part 1
  *   Program.cs is the entry point for the application and is responsible for configuring the application and starting the server.
  */
 
 using EventManagerMVC.Data;
+using EventManagerMVC.Services;
 using Microsoft.EntityFrameworkCore;
 
 //----------------------------namespace-----------------//
@@ -29,13 +30,14 @@ namespace EventManagerMVC
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
+            builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
+
             var app = builder.Build(); //builds the application
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
@@ -60,14 +62,10 @@ namespace EventManagerMVC
 //END OF FILE>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 /* Refrences:
- * Huawei Technologies, 2023. Cloud Computing Technologies, Hangzshou: Posts & Telecom Press.
- * OpenAI, 2025. chatgpt.com. [Online] 
-   Available at: https://openai.com/chatgpt/
-   [Accessed 20 March 2025].
+ * Huawei Technologies, 2023. Cloud Computing Technologies. Hangzhou: Posts & Telecom Press.
  * Mrzyglód, K., 2022. Azure for Developers. 2nd ed. Birmingham: Packt Publishing.
- * Microsoft Corporation, 2022. The Developer's Guide to Azure, Redmond: Microsoft Press
- * Github Inc, 2025. Github Copilot. [Online] 
-   Available at: https://github.com
-   [Accessed 14 March 2025].
- * Varsity Collage, 2025. INSY6112 Module Manual, Cape Town: Independent Institute of Education.
+ * Microsoft Corporation, 2022. The Developer’s Guide to Azure. Redmond: Microsoft Press.
+ * OpenAI, 2025. ChatGPT. [online] Available at: https://openai.com/chatgpt/ [Accessed 04 May 2025].
+ * Github Inc., 2025. GitHub Copilot. [online] Available at: https://github.com [Accessed 04 May 2025].
+ * Varsity College, 2025. INSY6112 Module Manual. Cape Town: The Independent Institute of Education.
  */
