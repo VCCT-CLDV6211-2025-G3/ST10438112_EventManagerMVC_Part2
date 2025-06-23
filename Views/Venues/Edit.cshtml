@@ -1,23 +1,29 @@
-﻿@model EventManagerMVC.Models.Venue
+﻿@model EventManagerMVC.Models.VenueEditViewModel
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
 @{
     ViewData["Title"] = "Edit Venue";
 }
 
 <h1>Edit Venue</h1>
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        @TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+
 <hr />
 <div class="row">
     <div class="col-md-6">
         <form asp-action="Edit" enctype="multipart/form-data">
             <div asp-validation-summary="All" class="text-danger"></div>
             <input type="hidden" asp-for="VenueID" />
+            <input type="hidden" asp-for="ExistingImageUrl" />  @* PRESERVE THIS VALUE *@
+
 
             <div class="form-group">
                 <label asp-for="VenueName" class="form-label"></label>
@@ -39,12 +45,32 @@
 
             <div class="form-group">
                 <label class="form-label">Current Image Preview:</label><br />
-                <img src="@Model.ImageURL" alt="Venue Image" style="max-height: 200px;" class="img-thumbnail" />
+                <div class="form-group">
+                    <label class="form-label">Current Image Preview:</label><br />
+                    @if (!string.IsNullOrEmpty(Model.ExistingImageUrl))
+                    {
+                        <img src="@Model.ExistingImageUrl"
+                             alt="Venue Image"
+                             style="max-height: 200px;"
+                             class="img-thumbnail" />
+                    }
+                    else
+                    {
+                        <p class="text-muted">No image uploaded.</p>
+                    }
+                </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Replace Venue Image (optional):</label>
-                <input type="file" name="image" class="form-control" />
+                <input asp-for="ImageUpload" class="form-control" type="file" />
+                <span asp-validation-for="ImageUpload" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="IsAvailable" class="control-label">Is Available?</label>
+                <input asp-for="IsAvailable" type="checkbox" />
+                <span asp-validation-for="IsAvailable" class="text-danger"></span>
             </div>
 
             <div class="form-group mt-3">

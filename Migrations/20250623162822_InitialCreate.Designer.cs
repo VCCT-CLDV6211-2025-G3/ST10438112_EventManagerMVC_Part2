@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EventManagerMVC.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250512153344_AddMissingNavigationProps")]
-    partial class AddMissingNavigationProps
+    [Migration("20250623162822_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -108,13 +108,23 @@ namespace EventManagerMVC.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<TimeSpan>("EventTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("EventTypeID")
+                        .HasColumnType("int");
+
                     b.Property<string>("ImageURL")
-                        .HasColumnType("nvarchar(max)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("/images/placeholder.png");
 
                     b.Property<int>("VenueID")
                         .HasColumnType("int");
 
                     b.HasKey("EventID");
+
+                    b.HasIndex("EventTypeID");
 
                     b.HasIndex("VenueID");
 
@@ -127,7 +137,9 @@ namespace EventManagerMVC.Migrations
                             Description = "A fun activity for hotel guests",
                             EventDate = new DateTime(2026, 7, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EventName = "Snow Skiing Competition",
-                            VenueID = 0
+                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
+                            EventTypeID = 3,
+                            VenueID = 4
                         },
                         new
                         {
@@ -135,7 +147,9 @@ namespace EventManagerMVC.Migrations
                             Description = "An annual speech to commemorate the birth of Christ",
                             EventDate = new DateTime(2026, 12, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EventName = "Pope's Christmas Address",
-                            VenueID = 0
+                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
+                            EventTypeID = 2,
+                            VenueID = 5
                         },
                         new
                         {
@@ -143,7 +157,9 @@ namespace EventManagerMVC.Migrations
                             Description = "An exciting afternoon experience for booked customers",
                             EventDate = new DateTime(2026, 1, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EventName = "Sunday Paragliding",
-                            VenueID = 0
+                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
+                            EventTypeID = 3,
+                            VenueID = 6
                         },
                         new
                         {
@@ -151,7 +167,9 @@ namespace EventManagerMVC.Migrations
                             Description = "A public event where the King meets the public around the Palace",
                             EventDate = new DateTime(2025, 6, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EventName = "His Majesty's Cancer Fundraiser",
-                            VenueID = 0
+                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
+                            EventTypeID = 4,
+                            VenueID = 7
                         },
                         new
                         {
@@ -159,7 +177,53 @@ namespace EventManagerMVC.Migrations
                             Description = "High stakes competition where groups of students compete to deploy an SaaS infrastructure under 60 minutes",
                             EventDate = new DateTime(2027, 6, 17, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EventName = "Cloud Development Team Death Match 2027",
-                            VenueID = 0
+                            EventTime = new TimeSpan(0, 0, 0, 0, 0),
+                            EventTypeID = 1,
+                            VenueID = 8
+                        });
+                });
+
+            modelBuilder.Entity("EventManagerMVC.Models.EventType", b =>
+                {
+                    b.Property<int>("EventTypeID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EventTypeID"));
+
+                    b.Property<string>("TypeName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("EventTypeID");
+
+                    b.ToTable("EventTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            EventTypeID = 1,
+                            TypeName = "Competition"
+                        },
+                        new
+                        {
+                            EventTypeID = 2,
+                            TypeName = "Conference"
+                        },
+                        new
+                        {
+                            EventTypeID = 3,
+                            TypeName = "Tourist Activity"
+                        },
+                        new
+                        {
+                            EventTypeID = 4,
+                            TypeName = "Fundraiser"
+                        },
+                        new
+                        {
+                            EventTypeID = 5,
+                            TypeName = "Corporate"
                         });
                 });
 
@@ -175,9 +239,11 @@ namespace EventManagerMVC.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ImageURL")
-                        .HasColumnType("nvarchar(max)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("/images/placeholder.png");
 
-                    b.Property<bool>("IsActive")
+                    b.Property<bool>("IsAvailable")
                         .HasColumnType("bit");
 
                     b.Property<string>("Location")
@@ -192,6 +258,9 @@ namespace EventManagerMVC.Migrations
 
                     b.HasKey("VenueID");
 
+                    b.HasIndex("VenueName")
+                        .IsUnique();
+
                     b.ToTable("Venues");
 
                     b.HasData(
@@ -200,7 +269,7 @@ namespace EventManagerMVC.Migrations
                             VenueID = 4,
                             Capacity = 250,
                             ImageURL = "<placeholderURL>",
-                            IsActive = true,
+                            IsAvailable = false,
                             Location = "Italy",
                             VenueName = "Selva Gardina"
                         },
@@ -209,7 +278,7 @@ namespace EventManagerMVC.Migrations
                             VenueID = 5,
                             Capacity = 9000,
                             ImageURL = "<placeholderURL>",
-                            IsActive = true,
+                            IsAvailable = false,
                             Location = "Rome, Italy",
                             VenueName = "Vatican"
                         },
@@ -218,7 +287,7 @@ namespace EventManagerMVC.Migrations
                             VenueID = 6,
                             Capacity = 50,
                             ImageURL = "<placeholderURL>",
-                            IsActive = true,
+                            IsAvailable = false,
                             Location = "Cape Town, South Africa",
                             VenueName = "Table Mountain"
                         },
@@ -227,7 +296,7 @@ namespace EventManagerMVC.Migrations
                             VenueID = 7,
                             Capacity = 1000,
                             ImageURL = "<placeholderURL>",
-                            IsActive = true,
+                            IsAvailable = false,
                             Location = "London, UK",
                             VenueName = "Buckingham Palace"
                         },
@@ -236,7 +305,7 @@ namespace EventManagerMVC.Migrations
                             VenueID = 8,
                             Capacity = 40,
                             ImageURL = "<placeholderURL>",
-                            IsActive = true,
+                            IsAvailable = false,
                             Location = "Newlands, Cape Town",
                             VenueName = "Varsity College"
                         });
@@ -255,11 +324,19 @@ namespace EventManagerMVC.Migrations
 
             modelBuilder.Entity("EventManagerMVC.Models.Event", b =>
                 {
+                    b.HasOne("EventManagerMVC.Models.EventType", "EventType")
+                        .WithMany("Events")
+                        .HasForeignKey("EventTypeID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("EventManagerMVC.Models.Venue", "Venue")
                         .WithMany("Events")
                         .HasForeignKey("VenueID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("EventType");
 
                     b.Navigation("Venue");
                 });
@@ -267,6 +344,11 @@ namespace EventManagerMVC.Migrations
             modelBuilder.Entity("EventManagerMVC.Models.Event", b =>
                 {
                     b.Navigation("Bookings");
+                });
+
+            modelBuilder.Entity("EventManagerMVC.Models.EventType", b =>
+                {
+                    b.Navigation("Events");
                 });
 
             modelBuilder.Entity("EventManagerMVC.Models.Venue", b =>

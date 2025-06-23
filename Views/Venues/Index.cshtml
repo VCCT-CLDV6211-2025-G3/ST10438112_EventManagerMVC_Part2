@@ -1,17 +1,20 @@
 ﻿@model IEnumerable<EventManagerMVC.Models.Venue>
 
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
 @{
     ViewData["Title"] = "Index";
 }
 
 <h1>Index</h1>
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        @TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+
 <p>
     <a asp-action="Create">Create New</a>
 </p>
@@ -20,9 +23,10 @@
     <thead>
         <tr>
             <th>Image Preview</th>
-            <th>@Html.DisplayNameFor(model => model.VenueName)</th>
-            <th>@Html.DisplayNameFor(model => model.Location)</th>
-            <th>@Html.DisplayNameFor(model => model.Capacity)</th>
+            <th>@Html.DisplayNameFor((Venue v) => v.VenueName)</th>
+            <th>@Html.DisplayNameFor((Venue v) => v.Location)</th>
+            <th>@Html.DisplayNameFor((Venue v) => v.Capacity)</th>
+            <th>Availability</th>
             <th></th>
         </tr>
     </thead>
@@ -34,11 +38,14 @@
                     <img src="@item.ImageURL"
                          alt="Venue Image"
                          style="max-height: 100px;"
-                         onerror="this.onerror=null;this.src='@Url.Content("~/images/No-Image-Placeholder.png")';" />
+                         onerror="this.onerror=null; this.src=@Url.Content("~/images/No-Image-Placeholder.png");" />
                 </td>
                 <td>@Html.DisplayFor(modelItem => item.VenueName)</td>
                 <td>@Html.DisplayFor(modelItem => item.Location)</td>
                 <td>@Html.DisplayFor(modelItem => item.Capacity)</td>
+                <td>
+                    @(item.IsAvailable ? "Available" : "Unavailable")
+                </td>
                 <td>
                     <a asp-action="Edit" asp-route-id="@item.VenueID">Edit</a> |
                     <a asp-action="Details" asp-route-id="@item.VenueID">Details</a> |

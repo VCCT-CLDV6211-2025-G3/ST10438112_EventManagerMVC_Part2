@@ -2,7 +2,7 @@
  *@Author:     Kylan Frittelli (ST10438112)                  
  *@File:       EventsController.cs                           
  *@Created:    22/03/2025
- *@Updated:    04/05/2025
+ *@Updated:    23/06/2025
  * - Added image upload functionality using Azure Blob Storage
  * 
  *@Purpose:    Manages event creation, editing, deletion,    
@@ -42,31 +42,32 @@ namespace EventManagerMVC.Controllers
 
         // GET: Events
         //Index method----------------//
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? eventTypeId, DateTime? startDate, DateTime? endDate, bool? IsAvailable)
         {
-            var applicationDbContext = _context.Events.Include(e => e.Venue);
-            return View(await applicationDbContext.ToListAsync());
-        }
-        //----------------------------//
+            ViewBag.EventTypes = new SelectList(_context.EventTypes, "EventTypeID", "TypeName", eventTypeId);
+            ViewBag.Venues = new SelectList(_context.Venues, "VenueID", "VenueName");
+            ViewBag.IsAvailable = IsAvailable;
+            ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
+            ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
 
-        // GET: Events/Details/5
-        //Details method----------------//
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var @event = await _context.Events
+            var events = _context.Events
+                .Include(e => e.EventType)
                 .Include(e => e.Venue)
-                .FirstOrDefaultAsync(m => m.EventID == id);
-            if (@event == null)
-            {
-                return NotFound();
-            }
+                .AsQueryable();
 
-            return View(@event);
+            if (eventTypeId.HasValue && eventTypeId.Value > 0)
+                events = events.Where(e => e.EventTypeID == eventTypeId.Value);
+
+            if (startDate.HasValue)
+                events = events.Where(e => e.EventDate >= startDate.Value);
+
+            if (endDate.HasValue)
+                events = events.Where(e => e.EventDate <= endDate.Value);
+
+            if (IsAvailable.HasValue)
+                events = events.Where(e => e.Venue.IsAvailable == IsAvailable.Value);
+
+            return View(await events.ToListAsync());
         }
         //----------------------------//
 
@@ -74,22 +75,19 @@ namespace EventManagerMVC.Controllers
         //Create method----------------//
         public IActionResult Create()
         {
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "Location");
+            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "VenueName");
+            ViewBag.EventTypes = new SelectList(_context.EventTypes, "EventTypeID", "TypeName");
             return View();
         }
         //----------------------------//
-
-        // POST: Events/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        //Create method----------------//
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("EventID,EventName,EventDate,EventTime,Description,VenueID,ImageURL")] Event @event, IFormFile file)
+        public async Task<IActionResult> Create([Bind("EventID,EventName,EventDate,EventTime,Description,VenueID,EventTypeID,ImageURL")] Event @event, IFormFile file)
         {
+            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "Location");
+
             if (ModelState.IsValid)
             {
-               
                 if (_context.Events.Any(e =>
                     e.VenueID == @event.VenueID &&
                     e.EventDate == @event.EventDate &&
@@ -99,33 +97,36 @@ namespace EventManagerMVC.Controllers
                     return View(@event);
                 }
 
+                // Default placeholder in case no image is uploaded or upload fails
+                string imageUrl = "/images/placeholder.png";
+
                 try
                 {
                     if (file != null && file.Length > 0)
                     {
-                        var imageUrl = await _blobService.UploadFileBlobAsync(file.OpenReadStream(), file.FileName, "eventimages");
-                        @event.ImageURL = imageUrl;
+                        imageUrl = await _blobService.UploadFileBlobAsync(file.OpenReadStream(), file.FileName, "eventimages");
                     }
 
-                    if (string.IsNullOrWhiteSpace(@event.ImageURL))
-                    {
-                        TempData["ErrorMessage"] = "Image upload failed or no image was provided.";
-                        return View(@event);
-                    }
+                    @event.ImageURL = imageUrl;
 
                     _context.Add(@event);
                     await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Event created successfully.";
                     return RedirectToAction(nameof(Index));
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    TempData["ErrorMessage"] = "An error occurred while uploading the image. Please try again.";
-                    return View(@event);
+                    TempData["ErrorMessage"] = "An error occurred while uploading the image. Please try again. (" + ex.Message + ")";
+                    return View(@event); // user input preserved
                 }
             }
 
+            
+            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "VenueName");
+            ViewBag.EventTypes = new SelectList(_context.EventTypes, "EventTypeID", "TypeName");
             return View(@event);
         }
+
         //----------------------------//
 
         // GET: Events/Edit/5
@@ -142,19 +143,18 @@ namespace EventManagerMVC.Controllers
             {
                 return NotFound();
             }
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "Location");
+            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "VenueName", @event.VenueID);
+            ViewBag.EventTypes = new SelectList(_context.EventTypes, "EventTypeID", "TypeName", @event.EventTypeID);
             return View(@event);
         }
         //----------------------------//
 
-        // POST: Events/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        //Edit method----------------//
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("EventID,EventName,EventDate,EventTime,Description,VenueID,ImageURL")] Event @event, IFormFile file)
+        public async Task<IActionResult> Edit(int id, [Bind("EventID,EventName,EventDate,EventTime,Description,VenueID,EventTypeID,ImageURL")] Event @event, IFormFile file)
         {
+            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "Location");
+
             if (id != @event.EventID)
             {
                 return NotFound();
@@ -176,26 +176,17 @@ namespace EventManagerMVC.Controllers
                 {
                     if (file != null && file.Length > 0)
                     {
-                        try
-                        {
-                            var imageUrl = await _blobService.UploadFileBlobAsync(file.OpenReadStream(), file.FileName, "eventimages");
-                            @event.ImageURL = imageUrl;
-
-                            if (string.IsNullOrWhiteSpace(@event.ImageURL))
-                            {
-                                TempData["ErrorMessage"] = "Image upload failed or no image was returned.";
-                                return View(@event);
-                            }
-                        }
-                        catch (Exception)
-                        {
-                            TempData["ErrorMessage"] = "An error occurred while uploading the image. Please try again.";
-                            return View(@event);
-                        }
+                        var imageUrl = await _blobService.UploadFileBlobAsync(file.OpenReadStream(), file.FileName, "eventimages");
+                        @event.ImageURL = imageUrl;
+                    }
+                    else if (string.IsNullOrWhiteSpace(@event.ImageURL))
+                    {
+                        @event.ImageURL = "/images/placeholder.png";
                     }
 
                     _context.Update(@event);
                     await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Event updated successfully.";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
@@ -209,8 +200,15 @@ namespace EventManagerMVC.Controllers
                         throw;
                     }
                 }
+                catch (Exception ex)
+                {
+                    TempData["ErrorMessage"] = "An error occurred while updating the event: " + ex.Message;
+                    return View(@event);
+                }
             }
 
+            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "VenueName", @event.VenueID);
+            ViewBag.EventTypes = new SelectList(_context.EventTypes, "EventTypeID", "TypeName", @event.EventTypeID);
             return View(@event);
         }
 
@@ -276,7 +274,7 @@ namespace EventManagerMVC.Controllers
  * Huawei Technologies, 2023. Cloud Computing Technologies. Hangzhou: Posts & Telecom Press.
  * Mrzyglód, K., 2022. Azure for Developers. 2nd ed. Birmingham: Packt Publishing.
  * Microsoft Corporation, 2022. The Developer’s Guide to Azure. Redmond: Microsoft Press.
- * OpenAI, 2025. ChatGPT. [online] Available at: https://openai.com/chatgpt/ [Accessed 04 May 2025].
- * Github Inc., 2025. GitHub Copilot. [online] Available at: https://github.com [Accessed 04 May 2025].
+ * OpenAI, 2025. ChatGPT. [online] Available at: https://openai.com/chatgpt/ [Accessed 23 June 2025].
+ * Github Inc., 2025. GitHub Copilot. [online] Available at: https://github.com [Accessed 23 June 2025].
  * Varsity College, 2025. INSY6112 Module Manual. Cape Town: The Independent Institute of Education.
  */

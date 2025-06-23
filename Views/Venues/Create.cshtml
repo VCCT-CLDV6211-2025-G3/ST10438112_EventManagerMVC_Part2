@@ -1,17 +1,20 @@
-﻿@model EventManagerMVC.Models.Venue
+﻿@model EventManagerMVC.Models.VenueCreateViewModel
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
 
 @{
     ViewData["Title"] = "Create";
 }
 
 <h1>Create</h1>
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        @TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+
 
 <h4>Venue</h4>
 <hr />
@@ -20,8 +23,6 @@
         <form asp-action="Create" enctype="multipart/form-data">
             <partial name="_ValidationScriptsPartial" />
             <div asp-validation-summary="All" class="text-danger"></div>
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
             <div class="form-group">
                 <label asp-for="VenueName" class="control-label"></label>
                 <input asp-for="VenueName" class="form-control" />
@@ -38,13 +39,16 @@
                 <span asp-validation-for="Capacity" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="ImageURL" class="control-label"></label>
-                <input asp-for="ImageURL" class="form-control" />
-                <span asp-validation-for="ImageURL" class="text-danger"></span>
+                <label asp-for="ImageUpload" class="control-label"></label>
+                <input asp-for="ImageUpload" class="form-control" type="file" />
+                <span asp-validation-for="ImageUpload" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="ImageURL" class="control-label">Upload Image</label>
-                <input type="file" name="imageFile" class="form-control" />
+                <label asp-for="IsAvailable" class="control-label">Is Available?</label>
+                <input asp-for="IsAvailable" type="checkbox" />
+                <span asp-validation-for="IsAvailable" class="text-danger"></span>
+            </div>
+            <div class="form-group mt-3">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
         </form>
@@ -56,5 +60,7 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

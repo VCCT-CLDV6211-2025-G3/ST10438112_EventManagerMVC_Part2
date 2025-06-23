@@ -34,21 +34,31 @@ namespace EventManagerMVC
 
             var app = builder.Build(); //builds the application
 
-            // Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.Database.Migrate();
+            }
+
+            //configures the HTTP request pipeline
+            if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else
             {
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
             }
 
-            // uses files from dependencies
+            //uses files from dependencies
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
             //--end of middleware-----------------//
 
-            // maps the default route
+            //maps the default route
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");

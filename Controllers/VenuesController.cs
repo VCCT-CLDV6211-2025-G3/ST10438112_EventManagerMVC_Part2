@@ -2,7 +2,7 @@
  *@Author:     Kylan Frittelli (ST10438112)                  
  *@File:       VenuesController.cs                           
  *@Created:    22/03/2025
- *@Updated:    04/05/2025
+ *@Updated:    23/06/2025
  * - Added image upload functionality using Azure Blob Storage
  * 
  *@Purpose:    Handles CRUD operations for venues.           
@@ -42,9 +42,11 @@ namespace EventManagerMVC.Controllers
 
         // GET: Venues
         //Index method----------------//
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string sortOrder)
         {
-            return View(await _context.Venues.ToListAsync());
+            var venuesQuery = from v in _context.Venues select v;
+            venuesQuery = venuesQuery.OrderBy(v => v.VenueName);
+            return View(await venuesQuery.ToListAsync());
         }
         //----------------------------//
 
@@ -72,64 +74,87 @@ namespace EventManagerMVC.Controllers
         //Create method----------------//
         public IActionResult Create()
         {
-            return View();
+            var model = new VenueCreateViewModel
+            {
+                IsAvailable = true
+            };
+            return View(model);
         }
         //----------------------------//
-
-        // POST: Venues/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        //Create method----------------//
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("VenueID,VenueName,Location,Capacity,ImageURL")] Venue venue, IFormFile file)
+        public async Task<IActionResult> Create(VenueCreateViewModel model)
         {
             if (ModelState.IsValid)
             {
-                try
-                {
-                    if (file != null && file.Length > 0)
-                    {
-                        var imageUrl = await _blobService.UploadFileBlobAsync(file.OpenReadStream(), file.FileName, "eventimages");
-                        venue.ImageURL = imageUrl;
-                    }
+                string imageUrl = "/images/placeholder.png";
 
-                    if (string.IsNullOrWhiteSpace(venue.ImageURL))
-                    {
-                        TempData["ErrorMessage"] = "Image upload failed or no image was provided.";
-                        return View(venue);
-                    }
-
-                    _context.Add(venue);
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (Exception)
+                if (model.ImageUpload != null && model.ImageUpload.Length > 0)
                 {
-                    TempData["ErrorMessage"] = "An error occurred while uploading the image. Please try again.";
-                    return View(venue);
+                    try
+                    {
+                        imageUrl = await _blobService.UploadFileBlobAsync(
+                            model.ImageUpload.OpenReadStream(),
+                            model.ImageUpload.FileName,
+                            "venueimages"
+                        );
+                    }
+                    catch
+                    {
+                        // Fallback to placeholder if upload fails
+                    }
                 }
+
+                var venue = new Venue
+                {
+                    VenueName = model.VenueName,
+                    Location = model.Location,
+                    Capacity = model.Capacity,
+                    ImageURL = imageUrl,
+                    IsAvailable = model.IsAvailable
+                };
+
+                bool alreadyExists = await _context.Venues
+                .AnyAsync(v => v.VenueName.Trim().ToLower() == model.VenueName.Trim().ToLower());
+
+                if (alreadyExists)
+                {
+                    ModelState.AddModelError(nameof(model.VenueName),
+                        "A venue with this name already exists.");
+                    return View(model);
+                }
+
+                _context.Add(venue);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Venue created successfully.";
+                return RedirectToAction(nameof(Index));
             }
 
-            return View(venue);
+            return View(model);
         }
+
         //----------------------------//
 
         // GET: Venues/Edit/5
         //Edit method----------------//
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var venue = await _context.Venues.FindAsync(id);
-            if (venue == null)
+            if (venue == null) return NotFound();
+
+            var model = new VenueEditViewModel
             {
-                return NotFound();
-            }
-            return View(venue);
+                VenueID = venue.VenueID,
+                VenueName = venue.VenueName,
+                Location = venue.Location,
+                Capacity = venue.Capacity,
+                ExistingImageUrl = venue.ImageURL,
+                IsAvailable = venue.IsAvailable
+
+            };
+            return View(model);
         }
         //-----------------------------//
 
@@ -139,55 +164,79 @@ namespace EventManagerMVC.Controllers
         //Edit method----------------//
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("VenueID,VenueName,Location,Capacity,ImageURL")] Venue venue, IFormFile file)
+        public async Task<IActionResult> Edit(int id, VenueEditViewModel model)
         {
-            if (id != venue.VenueID)
+            if (id != model.VenueID)
             {
                 return NotFound();
             }
 
             if (ModelState.IsValid)
             {
-                try
+                var venue = await _context.Venues.FindAsync(id);
+                if (venue == null)
                 {
-                    if (file != null && file.Length > 0)
-                    {
-                        try
-                        {
-                            var imageUrl = await _blobService.UploadFileBlobAsync(file.OpenReadStream(), file.FileName, "eventimages");
-                            venue.ImageURL = imageUrl;
-
-                            if (string.IsNullOrWhiteSpace(venue.ImageURL))
-                            {
-                                TempData["ErrorMessage"] = "Image upload failed or no image was returned.";
-                                return View(venue);
-                            }
-                        }
-                        catch (Exception)
-                        {
-                            TempData["ErrorMessage"] = "An error occurred while uploading the image. Please try again.";
-                            return View(venue);
-                        }
-                    }
-
-                    _context.Update(venue);
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
+                    return NotFound();
                 }
-                catch (DbUpdateConcurrencyException)
+
+                venue.VenueName = model.VenueName;
+                venue.Location = model.Location;
+                venue.Capacity = model.Capacity;
+                venue.IsAvailable = model.IsAvailable;
+
+                if (model.ImageUpload != null && model.ImageUpload.Length > 0)
                 {
-                    if (!VenueExists(venue.VenueID))
+                    try
                     {
-                        return NotFound();
+                        venue.ImageURL = await _blobService.UploadFileBlobAsync(
+                            model.ImageUpload.OpenReadStream(),
+                            model.ImageUpload.FileName,
+                            "venueimages"
+                        );
                     }
-                    else
+                    catch
                     {
-                        throw;
+                        
                     }
                 }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(venue.ImageURL))
+                    {
+                        venue.ImageURL = "/images/placeholder.png";
+                    }
+                }
+
+                bool duplicate = await _context.Venues
+                .AnyAsync(v => v.VenueName.Trim().ToLower() == model.VenueName.Trim().ToLower()
+                   && v.VenueID != model.VenueID);
+
+                if (duplicate)
+                {
+                    ModelState.AddModelError(nameof(model.VenueName),
+                        "Another venue with this name already exists.");
+                    //Retrieve the existing image URL to display in the view
+                    model.ExistingImageUrl = (await _context.Venues
+                                                .Where(v => v.VenueID == model.VenueID)
+                                                .Select(v => v.ImageURL)
+                                                .FirstOrDefaultAsync())
+                                                ?? "/images/placeholder.png";
+                    return View(model);
+                }
+
+                _context.Update(venue);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Venue updated successfully.";
+                return RedirectToAction(nameof(Index));
             }
 
-            return View(venue);
+            var storedVenue = await _context.Venues
+                       .Where(v => v.VenueID == model.VenueID)
+                       .Select(v => v.ImageURL)
+                       .FirstOrDefaultAsync();
+
+            model.ExistingImageUrl = storedVenue ?? "/images/placeholder.png";
+            return View(model);
         }
         //----------------------------//
 
@@ -210,27 +259,40 @@ namespace EventManagerMVC.Controllers
             return View(venue);
         }
         //----------------------------//
-
-        // POST: Venues/Delete/5
-        //Delete method----------------//
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var venue = await _context.Venues
                 .Include(v => v.Events)
                 .FirstOrDefaultAsync(m => m.VenueID == id);
 
-            if (venue != null && venue.Events.Any())
+            if (venue == null)
+            {
+                TempData["ErrorMessage"] = "Venue not found or already deleted.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (venue.Events.Any())
             {
                 TempData["ErrorMessage"] = "Cannot delete this venue because it has associated events.";
                 return RedirectToAction(nameof(Index));
             }
 
-            _context.Venues.Remove(venue);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                _context.Venues.Remove(venue);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Venue deleted successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"An error occurred while deleting the venue: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
         }
+
         //--------------------------//
         //---------------------------///
         private bool VenueExists(int id)
@@ -248,7 +310,7 @@ namespace EventManagerMVC.Controllers
  * Huawei Technologies, 2023. Cloud Computing Technologies. Hangzhou: Posts & Telecom Press.
  * Mrzyglód, K., 2022. Azure for Developers. 2nd ed. Birmingham: Packt Publishing.
  * Microsoft Corporation, 2022. The Developer’s Guide to Azure. Redmond: Microsoft Press.
- * OpenAI, 2025. ChatGPT. [online] Available at: https://openai.com/chatgpt/ [Accessed 20 March 2025].
- * Github Inc., 2025. GitHub Copilot. [online] Available at: https://github.com [Accessed 14 March 2025].
+ * OpenAI, 2025. ChatGPT. [online] Available at: https://openai.com/chatgpt/ [Accessed 23 June 2025].
+ * Github Inc., 2025. GitHub Copilot. [online] Available at: https://github.com [Accessed 23 June 2025].
  * Varsity College, 2025. INSY6112 Module Manual. Cape Town: The Independent Institute of Education.
  */
